@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Market Dashboard</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial;
+    background: #adb3be;
+    color: rgb(255, 255, 255);
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 25px;
+    background: #111827;
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid #1f2937;
+  }
+
+  .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .card {
+    background: #2c3851;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #1f2937;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #1f2937;
+  }
+
+  th {
+    color: #60a5fa;
+  }
+
+  .positive-flash {
+    animation: greenFlash 0.8s ease;
+  }
+
+  .negative-flash {
+    animation: redFlash 0.8s ease;
+  }
+
+  @keyframes greenFlash {
+    0% { background: rgb(0, 255, 94); }
+    100% { background: transparent; }
+  }
+
+  @keyframes redFlash {
+    0% { background: rgb(255, 0, 0); }
+    100% { background: transparent; }
+  }
+
+  .positive {
+    color: #00ff11;
+    font-weight: bold;
+  }
+
+  .negative {
+    color: #ff0404;
+    font-weight: bold;
+  }
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>📊 Live Oil Market Dashboard</h2>
+  <div id="clock", style="color: #ffffff; font-weight: bold;"></div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h3>KLC Market</h3>
+    <table id="klcTable"></table>
+  </div>
+
+  <div class="card">
+    <h3>CBOT Market</h3>
+    <table id="cbotTable"></table>
+  </div>
+</div>
+
+<script>
+
+const API = "http://localhost:3000/api/prices";
+
+/* CLOCK */
+function updateClock() {
+  const now = new Date();
+  document.getElementById("clock").innerText =
+    now.toLocaleDateString() + " " + now.toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* STORE PREVIOUS PRICES */
+let previousData = {
+  KLC: {},
+  CBOT: {}
+};
+
+/* LOAD DATA */
+async function loadData() {
+  const res = await fetch(API);
+  const data = await res.json();
+
+  renderTable("klcTable", data.KLC, "KLC");
+  renderTable("cbotTable", data.CBOT, "SOYOIL");
+
+  previousData = data;
+}
+
+/* RENDER TABLE WITH FLASH */
+function renderTable(id, dataset, prefix) {
+  let html = `
+    <tr>
+      <th>Month</th>
+      <th>Price</th>
+      <th>Change</th>
+    </tr>
+  `;
+
+  Object.keys(dataset).forEach(month => {
+    const item = dataset[month];
+
+    const prev = previousData?.[id === "klcTable" ? "KLC" : "CBOT"]?.[month]?.price;
+
+    const current = parseFloat(item.price);
+    const previous = parseFloat(prev);
+
+    let flashClass = "";
+
+    if (!isNaN(previous)) {
+      if (current > previous) flashClass = "positive-flash";
+      else if (current < previous) flashClass = "negative-flash";
+    }
+
+    const changeClass = parseFloat(item.change) >= 0 ? "positive" : "negative";
+
+    html += `
+      <tr class="${flashClass}">
+        <td>${prefix} ${month}</td>
+        <td>${item.price}</td>
+        <td class="${changeClass}">${item.change}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById(id).innerHTML = html;
+}
+
+/* INIT */
+loadData();
+setInterval(loadData, 5000);
+
+</script>
+
+</body>
+</html>
