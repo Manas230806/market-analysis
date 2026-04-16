@@ -139,13 +139,6 @@
 <script>
 
 //////////////////////////////
-// 🔐 LOGIN CHECK
-//////////////////////////////
-if (localStorage.getItem("auth") !== "true") {
-  window.location.href = "/login.html";
-}
-
-//////////////////////////////
 // API (PRODUCTION SAFE)
 //////////////////////////////
 const API = "/api/prices";
