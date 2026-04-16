@@ -138,7 +138,7 @@
 
 <script>
 
-const API = "http://localhost:3000/api/prices";
+const API = "https://market-analysis-gpia.onrender.com/api/prices";
 
 //////////////////////////////
 // ⏰ CLOCK
@@ -226,7 +226,7 @@ function renderTable(id, dataset, prefix) {
 // 🔥 DASHBOARD DATA
 //////////////////////////////
 async function loadDashboard() {
-  const res = await fetch("http://localhost:3000/api/dashboard");
+  const res = await fetch("https://market-analysis-gpia.onrender.com/api/dashboard");
   const data = await res.json();
 
   let html = "";
