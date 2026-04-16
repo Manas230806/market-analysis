@@ -1,91 +1,65 @@
 const axios = require("axios");
+const cheerio = require("cheerio");
 
-// Cache
 let cache = {
   KLC: {},
   CBOT: {},
   lastUpdated: null
 };
 
-// 🔥 Generic TradingView fetch
-async function fetchSymbol(symbol) {
+async function scrape(url) {
   try {
-    const url = "https://scanner.tradingview.com/global/scan";
-
-    const response = await axios.post(url, {
-      symbols: {
-        tickers: [symbol],
-        query: { types: [] }
-      },
-      columns: ["close", "change"]
+    const { data } = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0" }
     });
 
-    if (!response.data.data || response.data.data.length === 0) {
-      console.log("⚠️ No data:", symbol);
-      return null;
-    }
+    const $ = cheerio.load(data);
 
-    const d = response.data.data[0].d;
+    const price = $('[data-test="instrument-price-last"]').text();
+    const change = $('[data-test="instrument-price-change"]').text();
 
     return {
-      price: d[0]?.toFixed(2),
-      change: d[1]?.toFixed(2)
+      price: price || "-",
+      change: change || "-"
     };
 
   } catch (err) {
-    console.log("❌ Error:", symbol);
-    return null;
+    console.log("Scrape error:", url);
+    return { price: "-", change: "-" };
   }
 }
 
-// 🔥 Safe fetch with fallback
-async function safeFetch(symbol, fallback) {
-  let data = await fetchSymbol(symbol);
-
-  if (!data) {
-    console.log("↩️ Fallback used for:", symbol);
-    data = await fetchSymbol(fallback);
-  }
-
-  return data || { price: "-", change: "-" };
-}
-
-// 🔥 MAIN FUNCTION
 async function refreshData() {
-  console.log("🔄 Fetching SMART contract data...");
+  console.log("🔄 Fetching from Investing...");
 
-  const fallbackKLC = "MYX:FCPO1!";
-  const fallbackCBOT = "CBOT:ZL1!";
+  const klc = await scrape("https://www.investing.com/commodities/palm-oil");
+  const cbot = await scrape("https://www.investing.com/commodities/us-soybean-oil");
 
   cache = {
     KLC: {
-      MAY: await safeFetch("MYX:FCPOK2026", fallbackKLC),
-      JUN: await safeFetch("MYX:FCPOM2026", fallbackKLC),
-      JULY: await safeFetch("MYX:FCPON2026", fallbackKLC),
-      AUG: await safeFetch("MYX:FCPOQ2026", fallbackKLC),
-      SEP: await safeFetch("MYX:FCPOU2026", fallbackKLC)
+      MAY: klc,
+      JUN: klc,
+      JULY: klc,
+      AUG: klc,
+      SEP: klc
     },
-
     CBOT: {
-      MAY: await safeFetch("CBOT:ZLK2026", fallbackCBOT),
-      JULY: await safeFetch("CBOT:ZLN2026", fallbackCBOT),
-      AUG: await safeFetch("CBOT:ZLQ2026", fallbackCBOT),
-      SEP: await safeFetch("CBOT:ZLU2026", fallbackCBOT)
+      MAY: cbot,
+      JULY: cbot,
+      AUG: cbot,
+      SEP: cbot
     },
-
     lastUpdated: new Date()
   };
 
   console.log("✅ Updated:", cache);
 }
 
-// Auto refresh
 function startAutoRefresh() {
   refreshData();
   setInterval(refreshData, 5000);
 }
 
-// Export
 function getData() {
   return cache;
 }
