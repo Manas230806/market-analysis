@@ -100,7 +100,7 @@
 
   <div class="header-right">
     <button class="refresh-btn" onclick="manualRefresh()">🔄 Refresh</button>
-    <div id="clock" style="font-weight: bold;"></div>
+    <div id="clock" style="font-weight:bold;"></div>
   </div>
 </header>
 
@@ -138,10 +138,20 @@
 
 <script>
 
-const API = "http://localhost:3000/api/prices";
+//////////////////////////////
+// 🔐 LOGIN CHECK
+//////////////////////////////
+if (localStorage.getItem("auth") !== "true") {
+  window.location.href = "/login.html";
+}
 
 //////////////////////////////
-// ⏰ CLOCK
+// API (PRODUCTION SAFE)
+//////////////////////////////
+const API = "/api/prices";
+
+//////////////////////////////
+// CLOCK
 //////////////////////////////
 function updateClock() {
   const now = new Date();
@@ -161,15 +171,12 @@ function updateClock() {
 setInterval(updateClock, 1000);
 
 //////////////////////////////
-// 📊 PREVIOUS DATA (FOR FLASH)
+// FLASH MEMORY
 //////////////////////////////
-let previousData = {
-  KLC: {},
-  CBOT: {}
-};
+let previousData = { KLC: {}, CBOT: {} };
 
 //////////////////////////////
-// 📊 LOAD MARKET DATA
+// LOAD MARKET
 //////////////////////////////
 async function loadData() {
   const res = await fetch(API);
@@ -182,7 +189,7 @@ async function loadData() {
 }
 
 //////////////////////////////
-// 📋 RENDER TABLE WITH FLASH
+// TABLE RENDER + FLASH
 //////////////////////////////
 function renderTable(id, dataset, prefix) {
   let html = `
@@ -223,10 +230,10 @@ function renderTable(id, dataset, prefix) {
 }
 
 //////////////////////////////
-// 🔥 DASHBOARD DATA
+// DASHBOARD
 //////////////////////////////
 async function loadDashboard() {
-  const res = await fetch("http://localhost:3000/api/dashboard");
+  const res = await fetch("/api/dashboard");
   const data = await res.json();
 
   let html = "";
@@ -255,7 +262,7 @@ async function loadDashboard() {
 }
 
 //////////////////////////////
-// 🔄 MANUAL REFRESH
+// REFRESH
 //////////////////////////////
 function manualRefresh() {
   loadData();
@@ -263,7 +270,7 @@ function manualRefresh() {
 }
 
 //////////////////////////////
-// 🚀 INIT
+// INIT
 //////////////////////////////
 loadData();
 loadDashboard();
