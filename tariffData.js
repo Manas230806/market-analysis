@@ -1,6 +1,6 @@
 module.exports = {
   CPO: {
-    tariff_usd: 1174,
+    tariff_usd: 2308,
     duty: 16.5
   },
   RBD: {
