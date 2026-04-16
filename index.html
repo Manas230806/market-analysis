@@ -100,7 +100,7 @@
 
   <div class="header-right">
     <button class="refresh-btn" onclick="manualRefresh()">🔄 Refresh</button>
-    <div id="clock" style="font-weight:bold;"></div>
+    <div id="clock" style="font-weight: bold;"></div>
   </div>
 </header>
 
@@ -138,13 +138,10 @@
 
 <script>
 
-//////////////////////////////
-// API (PRODUCTION SAFE)
-//////////////////////////////
-const API = "/api/prices";
+const API = "http://localhost:3000/api/prices";
 
 //////////////////////////////
-// CLOCK
+// ⏰ CLOCK
 //////////////////////////////
 function updateClock() {
   const now = new Date();
@@ -164,12 +161,15 @@ function updateClock() {
 setInterval(updateClock, 1000);
 
 //////////////////////////////
-// FLASH MEMORY
+// 📊 PREVIOUS DATA (FOR FLASH)
 //////////////////////////////
-let previousData = { KLC: {}, CBOT: {} };
+let previousData = {
+  KLC: {},
+  CBOT: {}
+};
 
 //////////////////////////////
-// LOAD MARKET
+// 📊 LOAD MARKET DATA
 //////////////////////////////
 async function loadData() {
   const res = await fetch(API);
@@ -182,7 +182,7 @@ async function loadData() {
 }
 
 //////////////////////////////
-// TABLE RENDER + FLASH
+// 📋 RENDER TABLE WITH FLASH
 //////////////////////////////
 function renderTable(id, dataset, prefix) {
   let html = `
@@ -194,33 +194,27 @@ function renderTable(id, dataset, prefix) {
   `;
 
   Object.keys(dataset || {}).forEach(month => {
-    const item = dataset[month] || {};
-
-    const price = item.price ?? "-";
-    const change = item.change ?? "-";
+    const item = dataset[month];
 
     const prev = previousData?.[id === "klcTable" ? "KLC" : "CBOT"]?.[month]?.price;
 
-    const current = parseFloat(price);
+    const current = parseFloat(item.price);
     const previous = parseFloat(prev);
 
     let flashClass = "";
 
-    if (!isNaN(current) && !isNaN(previous)) {
+    if (!isNaN(previous)) {
       if (current > previous) flashClass = "positive-flash";
       else if (current < previous) flashClass = "negative-flash";
     }
 
-    const changeClass =
-      !isNaN(parseFloat(change)) && parseFloat(change) >= 0
-        ? "positive"
-        : "negative";
+    const changeClass = parseFloat(item.change) >= 0 ? "positive" : "negative";
 
     html += `
       <tr class="${flashClass}">
         <td>${prefix} ${month}</td>
-        <td>${price}</td>
-        <td class="${changeClass}">${change}</td>
+        <td>${item.price}</td>
+        <td class="${changeClass}">${item.change}</td>
       </tr>
     `;
   });
@@ -229,10 +223,10 @@ function renderTable(id, dataset, prefix) {
 }
 
 //////////////////////////////
-// DASHBOARD
+// 🔥 DASHBOARD DATA
 //////////////////////////////
 async function loadDashboard() {
-  const res = await fetch("/api/dashboard");
+  const res = await fetch("http://localhost:3000/api/dashboard");
   const data = await res.json();
 
   let html = "";
@@ -261,7 +255,7 @@ async function loadDashboard() {
 }
 
 //////////////////////////////
-// REFRESH
+// 🔄 MANUAL REFRESH
 //////////////////////////////
 function manualRefresh() {
   loadData();
@@ -269,7 +263,7 @@ function manualRefresh() {
 }
 
 //////////////////////////////
-// INIT
+// 🚀 INIT
 //////////////////////////////
 loadData();
 loadDashboard();
