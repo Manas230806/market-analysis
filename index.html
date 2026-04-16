@@ -9,17 +9,35 @@
     margin: 0;
     font-family: Arial;
     background: #adb3be;
-    color: rgb(255, 255, 255);
+    color: white;
   }
 
   header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 15px 25px;
     background: #111827;
-    position: sticky;
-    top: 0;
-    border-bottom: 1px solid #1f2937;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .refresh-btn {
+    padding: 8px 12px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .refresh-btn:hover {
+    background: #1d4ed8;
   }
 
   .container {
@@ -33,7 +51,6 @@
     background: #2c3851;
     padding: 15px;
     border-radius: 12px;
-    border: 1px solid #1f2937;
   }
 
   table {
@@ -47,9 +64,14 @@
     border-bottom: 1px solid #1f2937;
   }
 
-  th {
-    color: #60a5fa;
-  }
+  th { color: #60a5fa; }
+
+  .positive { color: #00ff11; font-weight: bold; }
+  .negative { color: #ff0404; font-weight: bold; }
+
+  .insight-red { color: #ff4d4d; font-weight: bold; }
+  .insight-green { color: #00ffcc; font-weight: bold; }
+  .insight-yellow { color: #ffd700; font-weight: bold; }
 
   .positive-flash {
     animation: greenFlash 0.8s ease;
@@ -68,27 +90,22 @@
     0% { background: rgb(255, 0, 0); }
     100% { background: transparent; }
   }
-
-  .positive {
-    color: #00ff11;
-    font-weight: bold;
-  }
-
-  .negative {
-    color: #ff0404;
-    font-weight: bold;
-  }
 </style>
 </head>
 
 <body>
 
 <header>
-  <h2>📊 Live Oil Market Dashboard</h2>
-  <div id="clock", style="color: #ffffff; font-weight: bold;"></div>
+  <h2>Live Oil Market Dashboard</h2>
+
+  <div class="header-right">
+    <button class="refresh-btn" onclick="manualRefresh()">🔄 Refresh</button>
+    <div id="clock" style="font-weight: bold;"></div>
+  </div>
 </header>
 
 <div class="container">
+
   <div class="card">
     <h3>KLC Market</h3>
     <table id="klcTable"></table>
@@ -98,28 +115,62 @@
     <h3>CBOT Market</h3>
     <table id="cbotTable"></table>
   </div>
+
+  <div class="card" style="grid-column: span 2;">
+    <h3>Import Tariff Dashboard</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Market</th>
+          <th>Tariff $</th>
+          <th>USD→INR</th>
+          <th>INR</th>
+          <th>Duty</th>
+          <th>Insight</th>
+        </tr>
+      </thead>
+      <tbody id="dashboardTable"></tbody>
+    </table>
+  </div>
+
 </div>
 
 <script>
 
-const API = "https://market-analysis-gpia.onrender.com/api/prices";
+const API = "http://localhost:3000/api/prices";
 
-/* CLOCK */
+//////////////////////////////
+// ⏰ CLOCK
+//////////////////////////////
 function updateClock() {
   const now = new Date();
-  document.getElementById("clock").innerText =
-    now.toLocaleDateString() + " " + now.toLocaleTimeString();
+
+  const date = now.toLocaleDateString("en-GB");
+
+  const time = now.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+
+  document.getElementById("clock").innerHTML =
+    "<b>" + date + " | " + time + "</b>";
 }
 setInterval(updateClock, 1000);
-updateClock();
 
-/* STORE PREVIOUS PRICES */
+//////////////////////////////
+// 📊 PREVIOUS DATA (FOR FLASH)
+//////////////////////////////
 let previousData = {
   KLC: {},
   CBOT: {}
 };
 
-/* LOAD DATA */
+//////////////////////////////
+// 📊 LOAD MARKET DATA
+//////////////////////////////
 async function loadData() {
   const res = await fetch(API);
   const data = await res.json();
@@ -130,7 +181,9 @@ async function loadData() {
   previousData = data;
 }
 
-/* RENDER TABLE WITH FLASH */
+//////////////////////////////
+// 📋 RENDER TABLE WITH FLASH
+//////////////////////////////
 function renderTable(id, dataset, prefix) {
   let html = `
     <tr>
@@ -140,7 +193,7 @@ function renderTable(id, dataset, prefix) {
     </tr>
   `;
 
-  Object.keys(dataset).forEach(month => {
+  Object.keys(dataset || {}).forEach(month => {
     const item = dataset[month];
 
     const prev = previousData?.[id === "klcTable" ? "KLC" : "CBOT"]?.[month]?.price;
@@ -169,9 +222,54 @@ function renderTable(id, dataset, prefix) {
   document.getElementById(id).innerHTML = html;
 }
 
-/* INIT */
+//////////////////////////////
+// 🔥 DASHBOARD DATA
+//////////////////////////////
+async function loadDashboard() {
+  const res = await fetch("http://localhost:3000/api/dashboard");
+  const data = await res.json();
+
+  let html = "";
+
+  Object.keys(data).forEach(key => {
+    const d = data[key];
+
+    let insightClass = "insight-yellow";
+    if (d.insight.includes("🔴")) insightClass = "insight-red";
+    if (d.insight.includes("🟢")) insightClass = "insight-green";
+
+    html += `
+      <tr>
+        <td>${key}</td>
+        <td>${d.market_price}</td>
+        <td>$${d.tariff_usd}</td>
+        <td>${d.usd.toFixed(2)}</td>
+        <td>₹${d.tariff_inr.toFixed(0)}</td>
+        <td>${d.duty}%</td>
+        <td class="${insightClass}">${d.insight}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("dashboardTable").innerHTML = html;
+}
+
+//////////////////////////////
+// 🔄 MANUAL REFRESH
+//////////////////////////////
+function manualRefresh() {
+  loadData();
+  loadDashboard();
+}
+
+//////////////////////////////
+// 🚀 INIT
+//////////////////////////////
 loadData();
+loadDashboard();
+
 setInterval(loadData, 5000);
+setInterval(loadDashboard, 5000);
 
 </script>
 
