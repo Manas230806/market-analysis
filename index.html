@@ -194,27 +194,33 @@ function renderTable(id, dataset, prefix) {
   `;
 
   Object.keys(dataset || {}).forEach(month => {
-    const item = dataset[month];
+    const item = dataset[month] || {};
+
+    const price = item.price ?? "-";
+    const change = item.change ?? "-";
 
     const prev = previousData?.[id === "klcTable" ? "KLC" : "CBOT"]?.[month]?.price;
 
-    const current = parseFloat(item.price);
+    const current = parseFloat(price);
     const previous = parseFloat(prev);
 
     let flashClass = "";
 
-    if (!isNaN(previous)) {
+    if (!isNaN(current) && !isNaN(previous)) {
       if (current > previous) flashClass = "positive-flash";
       else if (current < previous) flashClass = "negative-flash";
     }
 
-    const changeClass = parseFloat(item.change) >= 0 ? "positive" : "negative";
+    const changeClass =
+      !isNaN(parseFloat(change)) && parseFloat(change) >= 0
+        ? "positive"
+        : "negative";
 
     html += `
       <tr class="${flashClass}">
         <td>${prefix} ${month}</td>
-        <td>${item.price}</td>
-        <td class="${changeClass}">${item.change}</td>
+        <td>${price}</td>
+        <td class="${changeClass}">${change}</td>
       </tr>
     `;
   });
